@@ -1,0 +1,16 @@
+# Environment and secrets
+node_modules/
+.env
+.env.*
+!.env.example
+
+# Generated reports and artifacts
+/reports/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+
+# Debug logs
+npm-debug.log*
