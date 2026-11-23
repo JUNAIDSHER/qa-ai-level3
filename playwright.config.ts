@@ -18,6 +18,7 @@ export default defineConfig({
     ['list'],
     ['html', { outputFolder: 'playwright-report', open: 'never' }],
     ['junit', { outputFile: 'reports/junit-results.xml' }],
+    ['json', { outputFile: 'reports/test-results.json' }],
   ],
 
   use: {
@@ -30,7 +31,7 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'], },
+      use: { ...devices['Desktop Chrome'] },
     },
     {
       name: 'firefox',

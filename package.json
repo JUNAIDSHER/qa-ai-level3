@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "scripts": {},
+  "scripts": {
+  "rca:collect": "tsx agents/rca-collector.ts",
+  "rca:analyze": "tsx agents/rca-agent.ts reports/rca/deterministic-summary.md"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
