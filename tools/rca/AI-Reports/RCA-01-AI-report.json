@@ -1,0 +1,13 @@
+{
+  "incident": "Product search assertion failure",
+  "failureType": "Assertion failure",
+  "rootCause": "The test expected Wrong Product Name, but the actual searched product was Blue Top.",
+  "evidence": [
+    "The error log shows element(s) not found for Wrong Product Name.",
+    "The test searched for Blue Top.",
+    "The DOM snapshot contains Blue Top."
+  ],
+  "repairProposal": "Replace the incorrect expected text Wrong Product Name with Blue Top.",
+  "humanApprovalRequired": true,
+  "validation": "The original test was restored and rerun successfully."
+}

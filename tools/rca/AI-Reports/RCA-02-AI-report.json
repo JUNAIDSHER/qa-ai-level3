@@ -1,0 +1,13 @@
+{
+  "incident": "Invalid login assertion failure",
+  "failureType": "Assertion failure",
+  "rootCause": "The negative login test incorrectly expected Login successful! instead of the actual invalid credentials error message.",
+  "evidence": [
+    "The error log shows a timeout waiting for Login successful!.",
+    "The test scenario uses invalid login credentials.",
+    "The DOM snapshot contains Your email or password is incorrect!."
+  ],
+  "repairProposal": "Replace the incorrect success message assertion with Your email or password is incorrect!.",
+  "humanApprovalRequired": true,
+  "validation": "The original assertion was restored and the targeted test passed."
+}

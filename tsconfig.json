@@ -10,6 +10,7 @@
   },
   "include": [
     "tests/**/*.ts",
+    "agents/**/*.ts",
     "playwright.config.ts"
-  ]
+, "agents/gemini-client.mts", "agents/test-gemini.mts"  ]
 }
