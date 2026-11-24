@@ -64,6 +64,10 @@ qa-ai-level3/
 │       ├── login-negative.spec.ts
 │       └── signup.spec.ts
 │
+├── docs/
+│   └── screenshots/
+│       └── playwright-report.png
+│
 ├── playwright.config.ts
 ├── package.json
 └── README.md
@@ -72,6 +76,7 @@ qa-ai-level3/
 ## Test Coverage
 
 ### UI Automation
+
 - User registration
 - Login and logout
 - Duplicate email validation
@@ -84,6 +89,7 @@ qa-ai-level3/
 - Payment and invoice download
 
 ### API Automation
+
 - Authentication API
 - Account API
 - Products API
@@ -95,6 +101,25 @@ Tests are configured to run on:
 
 - Chromium
 - Firefox
+
+## Test Execution Results
+
+The latest verified local test execution completed successfully.
+
+| Metric | Result |
+|---|---:|
+| Total Tests | 58 |
+| Passed | 58 |
+| Failed | 0 |
+| Browsers | Chromium and Firefox |
+| Local Execution | Passed |
+| GitHub Actions | Passed |
+
+## Test Execution Evidence
+
+The following screenshot demonstrates the Playwright test execution report.
+
+![Playwright Test Report](docs/screenshots/playwright-report.png)
 
 ## Installation
 
@@ -166,9 +191,11 @@ npx playwright show-report
 
 This project integrates with **GitHub Actions** to execute automated tests in CI.
 
-The workflow runs the Playwright test suite and reports the execution status directly on GitHub.
+The workflow runs the Playwright test suite and reports execution status directly on GitHub.
 
-**Latest verified status:** All 58 tests passed locally, and the GitHub Actions workflow completed successfully.
+The GitHub Actions workflow has completed successfully.
+
+[View GitHub Actions](https://github.com/JUNAIDSHER/qa-ai-level3/actions)
 
 ## Architecture
 
