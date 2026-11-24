@@ -1,3 +1,5 @@
+![Playwright Tests](https://github.com/JUNAIDSHER/qa-ai-level3/actions/workflows/playwright.yml/badge.svg)
+
 # QA Automation Framework – Playwright
 
 A robust end-to-end test automation framework built with **Playwright and TypeScript**, designed to validate UI workflows and REST API functionality of the [Automation Exercise](https://automationexercise.com/) website.
