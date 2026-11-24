@@ -1,11 +1,6 @@
 
+import { randomUUID } from 'node:crypto';
 import type { AccountDetails } from '../pages/AccountInformationPage';
-
-const uniqueId = `${Date.now()}${Math.floor(Math.random() * 1000)}`;
-
-const randomNumber = Math.floor(1000 + Math.random() * 9000);
-
-const randomPassword = `Qa@${uniqueId}Test!`;
 
 const randomDigits = (length: number) =>
   Array.from(
@@ -13,22 +8,29 @@ const randomDigits = (length: number) =>
     () => Math.floor(Math.random() * 10)
   ).join('');
 
-export const purchaseUser = {
-  name: `QA User ${uniqueId}`,
-  email: `qa.purchase.${uniqueId}@example.com`,
+export function createPurchaseUser() {
+  const uniqueId = randomUUID().replace(/-/g, '').slice(0, 16);
+  const randomNumber = Math.floor(1000 + Math.random() * 9000);
 
-  account: {
-    password: randomPassword,
-    firstName: `First${uniqueId}`,
-    lastName: `Last${randomNumber}`,
-    address: `${randomNumber} Test Street`,
-    country: 'India',
-    state: `State${randomNumber}`,
-    city: `City${randomNumber}`,
-    zipcode: String(100000 + Math.floor(Math.random() * 900000)),
-    mobile: `0300${String(randomNumber).padStart(7, '0')}`
-  } satisfies AccountDetails
-};
+  const randomPassword = `Qa@${uniqueId}Test!`;
+
+  return {
+    name: `QA User ${uniqueId}`,
+    email: `qa.purchase.${uniqueId}@example.com`,
+
+    account: {
+      password: randomPassword,
+      firstName: `First${uniqueId}`,
+      lastName: `Last${randomNumber}`,
+      address: `${randomNumber} Test Street`,
+      country: 'India',
+      state: `State${randomNumber}`,
+      city: `City${randomNumber}`,
+      zipcode: String(100000 + Math.floor(Math.random() * 900000)),
+      mobile: `0300${String(randomNumber).padStart(7, '0')}`
+    } satisfies AccountDetails
+  };
+}
 
 export const purchasePayment = {
   nameOnCard: `QA Tester ${randomDigits(4)}`,

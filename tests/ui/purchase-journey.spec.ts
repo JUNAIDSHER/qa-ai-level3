@@ -1,23 +1,41 @@
-
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
 import { SignupPage } from '../../src/pages/SignupPage';
 import { AccountInformationPage } from '../../src/pages/AccountInformationPage';
 import { ProductsPage } from '../../src/pages/ProductsPage';
 import {
-  purchaseUser,
-  purchasePayment
+  createPurchaseUser,
+  purchasePayment,
 } from '../../src/fixtures/purchase-data';
+
+// Detect temporary website queue overload
+async function checkQueueFull(page: Page) {
+  const queueFullHeading = page.getByRole('heading', {
+    name: /this website is under heavy load/i,
+  });
+
+  if (await queueFullHeading.isVisible().catch(() => false)) {
+    throw new Error(
+      'Website is currently overloaded (queue full). Please retry later.'
+    );
+  }
+}
 
 test('Complete purchase journey with a unique test account', async ({ page }, testInfo) => {
   const signupPage = new SignupPage(page);
   const accountInformationPage = new AccountInformationPage(page);
   const productsPage = new ProductsPage(page);
 
+  // Generate a fresh account for every test attempt
+  const purchaseUser = createPurchaseUser();
+
   let accountCreated = false;
+  let testFailed = false;
 
   try {
     // Step 1: Register a unique test account
     await signupPage.open();
+    await checkQueueFull(page);
+
     await signupPage.verifySignupForm();
 
     await signupPage.startSignup(
@@ -25,9 +43,11 @@ test('Complete purchase journey with a unique test account', async ({ page }, te
       purchaseUser.email
     );
 
+    await checkQueueFull(page);
+
     await expect(
       accountInformationPage.createAccountButton
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 15000 });
 
     await accountInformationPage.fillAccountInformation(
       purchaseUser.account
@@ -44,13 +64,33 @@ test('Complete purchase journey with a unique test account', async ({ page }, te
     // Step 2: Continue to the account
     await page.getByRole('link', { name: 'Continue' }).click();
 
+    const loggedInText = page.getByText(
+      `Logged in as ${purchaseUser.name}`
+    );
+
+    const queueFullHeading = page.getByRole('heading', {
+      name: /this website is under heavy load/i,
+    });
+
+    // Wait for either successful login or queue-full response
     await expect(
-      page.getByText(`Logged in as ${purchaseUser.name}`)
-    ).toBeVisible();
+      loggedInText.or(queueFullHeading)
+    ).toBeVisible({ timeout: 15000 });
+
+    if (await queueFullHeading.isVisible().catch(() => false)) {
+      throw new Error(
+        'Website queue is full after account creation. Account cleanup may need manual attention.'
+      );
+    }
+
+    await expect(loggedInText).toBeVisible();
 
     // Step 3: Search and add Blue Top
     await productsPage.open();
+    await checkQueueFull(page);
+
     await productsPage.searchProduct('Blue Top');
+    await checkQueueFull(page);
 
     await expect(
       productsPage.searchedProductsHeading
@@ -67,7 +107,10 @@ test('Complete purchase journey with a unique test account', async ({ page }, te
 
     // Step 4: Search and add Men Tshirt
     await productsPage.open();
+    await checkQueueFull(page);
+
     await productsPage.searchProduct('Men Tshirt');
+    await checkQueueFull(page);
 
     await expect(
       productsPage.searchedProductsHeading
@@ -88,11 +131,11 @@ test('Complete purchase journey with a unique test account', async ({ page }, te
 
     // Step 6: Verify cart products and quantities
     const blueTopRow = page.locator('#cart_info tbody tr').filter({
-      hasText: 'Blue Top'
+      hasText: 'Blue Top',
     });
 
     const menTshirtRow = page.locator('#cart_info tbody tr').filter({
-      hasText: 'Men Tshirt'
+      hasText: 'Men Tshirt',
     });
 
     await expect(blueTopRow).toBeVisible();
@@ -162,7 +205,30 @@ test('Complete purchase journey with a unique test account', async ({ page }, te
     // Step 10: Place the order
     await page.getByRole('link', { name: 'Place Order' }).click();
 
-    // Step 11: Fill randomized dummy payment details
+    console.log('URL after Place Order:', page.url());
+
+    const paymentFields = [
+      '[data-qa="name-on-card"]',
+      '[data-qa="card-number"]',
+      '[data-qa="cvc"]',
+      '[data-qa="expiry-month"]',
+      '[data-qa="expiry-year"]',
+    ];
+
+    for (const selector of paymentFields) {
+      const visible = await page.locator(selector)
+        .isVisible()
+        .catch(() => false);
+
+      console.log(`Payment field ${selector} visible: ${visible}`);
+    }
+
+    // Verify payment form
+    await expect(
+      page.locator('[data-qa="name-on-card"]')
+    ).toBeVisible({ timeout: 10000 });
+
+    // Step 11: Fill dummy payment details
     await page.locator('[data-qa="name-on-card"]').fill(
       purchasePayment.nameOnCard
     );
@@ -185,7 +251,7 @@ test('Complete purchase journey with a unique test account', async ({ page }, te
 
     // Step 12: Confirm order
     await page.getByRole('button', {
-      name: 'Pay and Confirm Order'
+      name: 'Pay and Confirm Order',
     }).click();
 
     await expect(
@@ -196,7 +262,7 @@ test('Complete purchase journey with a unique test account', async ({ page }, te
     const downloadPromise = page.waitForEvent('download');
 
     await page.getByRole('link', {
-      name: 'Download Invoice'
+      name: 'Download Invoice',
     }).click();
 
     const download = await downloadPromise;
@@ -211,29 +277,61 @@ test('Complete purchase journey with a unique test account', async ({ page }, te
 
     console.log('Invoice saved:', invoicePath);
 
-  } finally {
-    // Step 14: Delete disposable account
-    if (accountCreated && !page.isClosed()) {
-      await signupPage.deleteAccount();
+  } catch (error) {
+    testFailed = true;
+    throw error;
 
-      await expect(
-        page.getByRole('heading', { name: 'ACCOUNT DELETED!' })
-      ).toBeVisible();
+  } finally {
+    // Step 14: Attempt to delete disposable account
+    if (accountCreated && !page.isClosed()) {
+      try {
+        // Do not attempt deletion on a queue-full page
+        await checkQueueFull(page);
+
+        await signupPage.deleteAccount();
+
+        await expect(
+          page.getByRole('heading', { name: 'ACCOUNT DELETED!' })
+        ).toBeVisible({ timeout: 15000 });
+
+        console.log('Disposable test account deleted successfully.');
+
+      } catch (cleanupError) {
+        console.error(
+          'Account cleanup failed. Manual cleanup may be required:',
+          cleanupError
+        );
+
+        if (!page.isClosed()) {
+          await page.screenshot({
+            path: testInfo.outputPath('cleanup-failure.png'),
+            fullPage: true,
+          }).catch(() => {});
+        }
+
+        if (!testFailed) {
+          throw cleanupError;
+        }
+      }
     }
   }
-});
 
+});
 
 test('UI 13 - Guest user is prompted to register before checkout', async ({ page }) => {
   const productsPage = new ProductsPage(page);
 
   // Step 1: Open products page as guest
   await productsPage.open();
+  await checkQueueFull(page);
 
   // Step 2: Search for Blue Top
   await productsPage.searchProduct('Blue Top');
+  await checkQueueFull(page);
 
-  await expect(productsPage.searchedProductsHeading).toBeVisible();
+  await expect(
+    productsPage.searchedProductsHeading
+  ).toBeVisible();
 
   // Step 3: Open product details
   await productsPage.openProductDetails('Blue Top');
@@ -256,12 +354,12 @@ test('UI 13 - Guest user is prompted to register before checkout', async ({ page
 
   // Step 7: Verify guest is prompted to register or login
   await expect(
-  page.getByText('Register / Login account to proceed on checkout.')
-).toBeVisible();
+    page.getByText('Register / Login account to proceed on checkout.')
+  ).toBeVisible();
 
-  // Step 8: Verify registration/login link exists
+  // Step 8: Verify registration/login link
   await expect(
-    page.getByRole('link', { name: /Register \/ Login/i })
+    page.getByRole('link', { name: /Register\s*\/\s*Login/i })
   ).toBeVisible();
 });
 

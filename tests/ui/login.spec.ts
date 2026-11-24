@@ -1,8 +1,21 @@
 
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
 import { SignupPage } from '../../src/pages/SignupPage';
 import { AccountInformationPage } from '../../src/pages/AccountInformationPage';
 import { LoginPage } from '../../src/pages/LoginPage';
+
+// Detect AutomationExercise queue-full response
+async function checkQueueFull(page: Page) {
+  const queueFullHeading = page.getByRole('heading', {
+    name: /this website is under heavy load/i
+  });
+
+  if (await queueFullHeading.isVisible().catch(() => false)) {
+    throw new Error(
+      'AutomationExercise server is overloaded. Please retry later.'
+    );
+  }
+}
 
 test('AE-02: User can login and logout successfully', async ({ page }) => {
   const signupPage = new SignupPage(page);
@@ -56,14 +69,14 @@ test('AE-02: User can login and logout successfully', async ({ page }) => {
   // Step 13: Delete disposable account
   await signupPage.deleteAccount();
 
-  // Step 14: Verify account deletion
+  // Step 14: Check queue-full response
+  await checkQueueFull(page);
+
+  // Step 15: Verify account deletion
   await expect(
     page.getByRole('heading', { name: 'ACCOUNT DELETED!' })
   ).toBeVisible();
 });
-
-
-
 
 test('UI 14 - Logged out user cannot access account page', async ({ page }) => {
   const signupPage = new SignupPage(page);
@@ -105,7 +118,6 @@ test('UI 14 - Logged out user cannot access account page', async ({ page }) => {
 
   // Step 10: Verify logout
   await expect(page).toHaveURL(/login/);
-
   await expect(loginPage.loginHeading).toBeVisible();
 
   // Step 11: Try accessing account page directly
@@ -142,7 +154,10 @@ test('UI 14 - Logged out user cannot access account page', async ({ page }) => {
   // Step 17: Delete disposable account
   await signupPage.deleteAccount();
 
-  // Step 18: Verify account deletion
+  // Step 18: Check queue-full response
+  await checkQueueFull(page);
+
+  // Step 19: Verify account deletion
   await expect(
     page.getByRole('heading', { name: 'ACCOUNT DELETED!' })
   ).toBeVisible();

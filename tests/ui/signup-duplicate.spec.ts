@@ -16,49 +16,88 @@ test('AE-04: User cannot register with an already registered email', async ({ pa
   // Step 1: Open signup page
   await signupPage.open();
 
-  // Step 2: Register the first account
+  // Step 2: Register first account
   await signupPage.startSignup(name, email);
 
   // Step 3: Verify account information page
-  await expect(signupPage.accountInformationHeading).toBeVisible();
+  await expect(
+    signupPage.accountInformationHeading
+  ).toBeVisible({ timeout: 20000 });
 
   // Step 4: Fill account information
-  await accountPage.fillAccountInformation();
+  await accountPage.fillAccountInformation({
+    password,
+    firstName: 'QA',
+    lastName: 'Tester',
+    address: '123 Test Street',
+    country: 'India',
+    state: 'Test State',
+    city: 'Test City',
+    zipcode: '123456',
+    mobile: '03001234567'
+  });
 
   // Step 5: Create first account
   await accountPage.createAccount();
 
-  // Step 6: Verify account creation
-  await expect(signupPage.accountCreatedHeading).toBeVisible();
+  await expect(
+    signupPage.accountCreatedHeading
+  ).toBeVisible({ timeout: 20000 });
 
-  // Step 7: Continue to website
+  // Step 6: Continue to website
   await page.getByRole('link', { name: 'Continue' }).click();
 
-  // Step 8: Logout from first account
+  const loggedInText = page.getByText(`Logged in as ${name}`);
+
+  const queueFullHeading = page.getByRole('heading', {
+    name: /this website is under heavy load/i
+  });
+
+  await expect(
+    loggedInText.or(queueFullHeading)
+  ).toBeVisible({ timeout: 20000 });
+
+  if (await queueFullHeading.isVisible().catch(() => false)) {
+    throw new Error(
+      'Website overloaded after account creation.'
+    );
+  }
+
+  // Step 7: Logout
   await page.getByRole('link', { name: 'Logout' }).click();
 
-  // Step 9: Attempt signup using the same email
-  await signupPage.open();
+  await expect(loginPage.loginHeading).toBeVisible({
+    timeout: 20000
+  });
+
+  // Step 8: Attempt signup using the same email
   await signupPage.startSignup(name, email);
 
-  // Step 10: Verify duplicate email error
-  await expect(
-    page.getByText('Email Address already exist!')
-  ).toBeVisible();
+  // Duplicate email should show an error, not account information
+  const duplicateEmailError = page.getByText(
+    'Email Address already exist!',
+    { exact: true }
+  );
 
-  // Step 11: Login with the original account
+  await expect(duplicateEmailError).toBeVisible({
+    timeout: 15000
+  });
+
+  // Step 9: Login using the original account
   await loginPage.open();
+
   await loginPage.login(email, password);
 
-  await expect(
-    page.getByText(`Logged in as ${name}`)
-  ).toBeVisible();
+  await expect(loggedInText).toBeVisible({
+    timeout: 20000
+  });
 
-  // Step 12: Delete disposable account
+  // Step 10: Delete disposable account
   await signupPage.deleteAccount();
 
-  // Step 13: Verify account deletion
   await expect(
-    page.getByRole('heading', { name: 'ACCOUNT DELETED!' })
-  ).toBeVisible();
+    page.getByRole('heading', {
+      name: 'ACCOUNT DELETED!'
+    })
+  ).toBeVisible({ timeout: 20000 });
 });

@@ -24,15 +24,14 @@ test('UI 19 - User can scroll homepage to bottom and back to top', async ({ page
 
   expect(pageHeight).toBeGreaterThan(viewportHeight);
 
-  // Step 4: Scroll to bottom
-  await page.evaluate(() => {
-    window.scrollTo(0, document.documentElement.scrollHeight);
-  });
+  // Step 4: Scroll to footer
+  const footer = page.locator('footer');
 
-  // Step 5: Verify bottom section is visible
-  await expect(
-    page.locator('footer')
-  ).toBeInViewport();
+  await expect(footer).toBeAttached();
+  await footer.scrollIntoViewIfNeeded();
+
+  // Step 5: Verify footer is visible
+  await expect(footer).toBeInViewport();
 
   // Step 6: Scroll back to top
   await page.evaluate(() => {
