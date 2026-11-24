@@ -1,3 +1,4 @@
+
 name: Playwright QA Automation
 
 on:
@@ -32,9 +33,9 @@ jobs:
         id: browsers
         run: npx playwright install --with-deps chromium firefox
 
-      - name: Run UI tests on Chromium and Firefox
+      - name: Run UI and example tests on Chromium and Firefox
         id: ui-tests
-        run: npx playwright test tests/ui --workers=1
+        run: npx playwright test tests/ui tests/example.spec.ts --workers=1
 
       - name: Collect UI RCA report
         if: always() && steps.install.outcome == 'success' && steps.ui-tests.outcome != 'skipped'
@@ -47,10 +48,10 @@ jobs:
             cp reports/test-results.json reports/ui-test-results.json
           fi
 
-      - name: Run API tests on Chromium
+      - name: Run API tests on Chromium and Firefox
         id: api-tests
         if: always() && steps.install.outcome == 'success' && steps.browsers.outcome == 'success'
-        run: npx playwright test tests/api --project=chromium --workers=1
+        run: npx playwright test tests/api --workers=1
 
       - name: Collect API RCA report
         if: always() && steps.install.outcome == 'success' && steps.api-tests.outcome != 'skipped'
