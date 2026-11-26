@@ -24,6 +24,7 @@ It also includes AI-assisted Root Cause Analysis (RCA), deterministic fallback a
 - Human review requirements for repair proposals
 - GitHub Actions CI integration
 - Automated test evidence collection
+- Three consecutive successful smoke test runs
 
 ## Tech Stack
 
@@ -113,6 +114,8 @@ qa-ai-level3/
 └── README.md
 ```
 
+> Verify the project tree against the actual repository before submission. Generated reports and evidence folders may vary depending on the latest execution.
+
 ## Test Coverage
 
 ### UI Automation
@@ -162,7 +165,9 @@ Tests are configured to run on:
 
 ## Test Execution Results
 
-The latest verified local test execution completed successfully.
+### Latest Full Test Suite
+
+The latest verified local full-suite execution completed successfully.
 
 | Metric | Result |
 |---|---:|
@@ -172,11 +177,42 @@ The latest verified local test execution completed successfully.
 | Skipped | 2 |
 | Browsers | Chromium and Firefox |
 | Workers | 1 |
-| Execution time | Approximately 5.3 minutes |
+| Execution time | Approximately 5.5 minutes |
 | Local execution | Passed |
 | GitHub Actions | Passed |
 
-The two skipped instances belong to FI-02, the intentionally gated fault-injection test.
+The two skipped instances belong to FI-02, the intentionally gated fault-injection test. FI-02 is excluded from normal execution unless explicitly enabled.
+
+### Three Consecutive Smoke Runs
+
+Three consecutive smoke test executions completed successfully with no retries.
+
+| Run | Passed | Failed |
+|---|---:|---:|
+| Smoke Run 1 | 16 | 0 |
+| Smoke Run 2 | 16 | 0 |
+| Smoke Run 3 | 16 | 0 |
+| **Total** | **48** | **0** |
+
+Smoke test configuration:
+
+- Browsers: Chromium and Firefox
+- Workers: 1 (serial execution)
+- Retries: 0
+- Result: 48/48 test executions passed
+
+Scenarios verified:
+
+- Successful login and logout (AE-02)
+- Invalid login validation (AE-03)
+- Product search
+- Cart quantity verification
+- Complete purchase journey
+- API 1 – Get all products
+- API 2 – Search product
+- API 6 – Invalid login credentials
+
+These smoke results are separate from the full-suite results above.
 
 ## Test Execution Evidence
 
@@ -236,6 +272,12 @@ Run tests with one worker:
 npx playwright test --workers=1
 ```
 
+Run tests without retries:
+
+```bash
+npx playwright test --workers=1 --retries=0
+```
+
 Run API tests:
 
 ```bash
@@ -246,6 +288,22 @@ Run a specific test file:
 
 ```bash
 npx playwright test tests/ui/login.spec.ts
+```
+
+Run the three consecutive smoke tests:
+
+```powershell
+$pattern = 'AE-02|AE-03|User can search for a product|User can add two products to cart|Complete purchase journey|API 1|API 2|API 6'
+
+1..3 | ForEach-Object {
+    Write-Host "`n========== SMOKE RUN $_ ==========" -ForegroundColor Cyan
+    npx playwright test --grep "$pattern" --workers=1 --retries=0
+
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "SMOKE RUN $_ FAILED" -ForegroundColor Red
+        break
+    }
+}
 ```
 
 ## Test Reports
@@ -288,6 +346,8 @@ The project includes an AI-assisted RCA workflow designed to help analyze test f
 
 AI-generated repair proposals are not automatically applied. Human review is required before approving any repair.
 
+The deterministic fallback provides a model-independent way to collect and summarize failures when AI analysis is unavailable.
+
 ### Fault Injection
 
 **FI-01 – Script Fault**
@@ -308,7 +368,7 @@ npx playwright test tests/ui/fault-injection-fi02.spec.ts --workers=1
 Remove-Item Env:RUN_FAULT_INJECTION
 ```
 
-FI-02 review and repair approval remain subject to human review.
+FI-02 review and repair approval remain subject to human review. The current report records its review status as pending.
 
 ## Continuous Integration
 
@@ -367,6 +427,7 @@ Before final submission, verify that:
 - RCA reports and fault-injection evidence are present.
 - Test execution results reflect the latest verified run.
 - GitHub Actions workflow status is successful.
+- The requirement traceability matrix matches the implemented tests.
 
 ### Final Submission Checklist
 
