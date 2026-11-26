@@ -37,15 +37,41 @@ jobs:
         id: ui-tests
         run: npx playwright test tests/ui tests/example.spec.ts --workers=1
 
+      - name: Preserve UI test evidence
+        if: always() && steps.install.outcome == 'success' && steps.ui-tests.outcome != 'skipped'
+        run: |
+          mkdir -p reports/ui-test-artifacts
+
+          if [ -d test-results ]; then
+            cp -R test-results/. reports/ui-test-artifacts/
+          fi
+
+          if [ -d playwright-report ]; then
+            mkdir -p reports/ui-playwright-report
+            cp -R playwright-report/. reports/ui-playwright-report/
+          fi
+
+          if [ -f reports/test-results.json ]; then
+            cp reports/test-results.json reports/ui-test-results.json
+          fi
+
       - name: Collect UI RCA report
         if: always() && steps.install.outcome == 'success' && steps.ui-tests.outcome != 'skipped'
         run: |
-          if [ -f reports/test-results.json ]; then
-            npm run rca:collect
+          if [ -f reports/ui-test-results.json ]; then
+            npm run rca:collect || echo "UI RCA collection failed; raw evidence preserved."
+
             mkdir -p reports/rca/ui
-            cp reports/rca/deterministic-summary.json reports/rca/ui/
-            cp reports/rca/deterministic-summary.md reports/rca/ui/
-            cp reports/test-results.json reports/ui-test-results.json
+
+            if [ -f reports/rca/deterministic-summary.json ]; then
+              cp reports/rca/deterministic-summary.json reports/rca/ui/
+            fi
+
+            if [ -f reports/rca/deterministic-summary.md ]; then
+              cp reports/rca/deterministic-summary.md reports/rca/ui/
+            fi
+          else
+            echo "UI test-results.json not found."
           fi
 
       - name: Run API tests on Chromium and Firefox
@@ -53,15 +79,41 @@ jobs:
         if: always() && steps.install.outcome == 'success' && steps.browsers.outcome == 'success'
         run: npx playwright test tests/api --workers=1
 
+      - name: Preserve API test evidence
+        if: always() && steps.install.outcome == 'success' && steps.api-tests.outcome != 'skipped'
+        run: |
+          mkdir -p reports/api-test-artifacts
+
+          if [ -d test-results ]; then
+            cp -R test-results/. reports/api-test-artifacts/
+          fi
+
+          if [ -d playwright-report ]; then
+            mkdir -p reports/api-playwright-report
+            cp -R playwright-report/. reports/api-playwright-report/
+          fi
+
+          if [ -f reports/test-results.json ]; then
+            cp reports/test-results.json reports/api-test-results.json
+          fi
+
       - name: Collect API RCA report
         if: always() && steps.install.outcome == 'success' && steps.api-tests.outcome != 'skipped'
         run: |
-          if [ -f reports/test-results.json ]; then
-            npm run rca:collect
+          if [ -f reports/api-test-results.json ]; then
+            npm run rca:collect || echo "API RCA collection failed; raw evidence preserved."
+
             mkdir -p reports/rca/api
-            cp reports/rca/deterministic-summary.json reports/rca/api/
-            cp reports/rca/deterministic-summary.md reports/rca/api/
-            cp reports/test-results.json reports/api-test-results.json
+
+            if [ -f reports/rca/deterministic-summary.json ]; then
+              cp reports/rca/deterministic-summary.json reports/rca/api/
+            fi
+
+            if [ -f reports/rca/deterministic-summary.md ]; then
+              cp reports/rca/deterministic-summary.md reports/rca/api/
+            fi
+          else
+            echo "API test-results.json not found."
           fi
 
       - name: Upload Playwright test results and RCA reports
@@ -70,8 +122,8 @@ jobs:
         with:
           name: playwright-test-results
           path: |
+            reports/
             test-results/
             playwright-report/
-            reports/
           if-no-files-found: ignore
           retention-days: 14
