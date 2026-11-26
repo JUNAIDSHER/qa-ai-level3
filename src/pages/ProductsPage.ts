@@ -14,31 +14,31 @@ export class ProductsPage {
     this.searchInput = page.locator('#search_product');
     this.searchButton = page.locator('#submit_search');
     this.searchedProductsHeading = page.getByRole('heading', {
-      name: 'Searched Products'
+      name: 'Searched Products',
     });
   }
 
   async open() {
-  await this.page.goto('/products', {
-    waitUntil: 'domcontentloaded',
-    timeout: 60000
-  });
+    await this.page.goto('/products', {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000,
+    });
 
-  const queueMessage = this.page.getByRole('heading', {
-    name: 'This website is under heavy load (queue full)'
-  });
+    const queueMessage = this.page.getByRole('heading', {
+      name: 'This website is under heavy load (queue full)',
+    });
 
-  if (await queueMessage.isVisible().catch(() => false)) {
-    throw new Error(
-      'Automation Exercise website is overloaded. Please rerun the test later.'
-    );
+    if (await queueMessage.isVisible().catch(() => false)) {
+      throw new Error(
+        'Automation Exercise website is overloaded. Please rerun the test later.',
+      );
+    }
+
+    await this.searchInput.waitFor({
+      state: 'visible',
+      timeout: 15000,
+    });
   }
-
-  await this.searchInput.waitFor({
-    state: 'visible',
-    timeout: 15000
-  });
-}
 
   async getSearchResults() {
     return this.page.locator('.productinfo');
@@ -49,17 +49,16 @@ export class ProductsPage {
     await this.searchButton.click();
   }
 
-  
-async openProductDetails(productName: string) {
-  const productCard = this.page.locator('.product-image-wrapper').filter({
-    hasText: productName
-  }).first();
+  async openProductDetails(productName: string) {
+    const productCard = this.page
+      .locator('.product-image-wrapper')
+      .filter({ hasText: productName })
+      .first();
 
-  const viewProductLink = productCard.locator(
-    'a[href*="/product_details/"]'
-  );
+    const viewProductLink = productCard.locator(
+      'a[href*="/product_details/"]',
+    );
 
-  await viewProductLink.click();
-}
-
+    await viewProductLink.click();
+  }
 }

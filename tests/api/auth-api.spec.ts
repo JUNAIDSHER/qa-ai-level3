@@ -71,19 +71,36 @@ test('API 5 - Verify login without email', async ({ request }) => {
   expect(body.message).toContain('email');
 });
 
+
 // API 6 - Invalid credentials
 test('API 6 - Verify login with invalid credentials', async ({ request }) => {
   const authApi = new AuthApi(request);
 
   const response = await authApi.verifyLoginWithInvalidCredentials();
 
-  // Debug API response
   const responseBody = await response.text();
 
   console.log('API 6 status:', response.status());
   console.log('API 6 response:', responseBody);
 
-  // Verify expected HTTP status
+  // Detect external website overload.
+  if (response.status() === 503) {
+    let isQueueFull = false;
+
+    try {
+      isQueueFull = /queue full|under heavy load/i.test(responseBody);
+    } catch {
+      // Preserve the original HTTP failure if response parsing fails.
+    }
+
+    if (isQueueFull) {
+      throw new Error(
+        'EXTERNAL_DEPENDENCY_FAILURE: API 6 received HTTP 503 because Automation Exercise is overloaded (queue full).'
+      );
+    }
+  }
+
+  // Verify expected HTTP status.
   expect(response.status()).toBe(200);
 
   const body = JSON.parse(responseBody);
@@ -91,3 +108,4 @@ test('API 6 - Verify login with invalid credentials', async ({ request }) => {
   expect(body.responseCode).toBe(404);
   expect(body.message).toContain('User not found');
 });
+
