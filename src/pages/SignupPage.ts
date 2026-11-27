@@ -10,6 +10,8 @@ export class SignupPage {
   readonly deleteAccountButton: Locator;
   readonly signupHeading: Locator;
   readonly accountInformationHeading: Locator;
+  readonly queueFullHeading: Locator;
+  readonly cloudflareError: Locator;
 
   constructor(page: Page) {
     this.page = page;
@@ -33,6 +35,28 @@ export class SignupPage {
     this.deleteAccountButton = page.getByRole('link', {
       name: 'Delete Account'
     });
+
+    this.queueFullHeading = page.getByRole('heading', {
+      name: /this website is under heavy load/i
+    });
+
+    this.cloudflareError = page.getByText(
+      /web server is returning an unknown error|error code 520/i
+    );
+  }
+
+  async checkExternalFailure() {
+    if (await this.queueFullHeading.isVisible().catch(() => false)) {
+      throw new Error(
+        'EXTERNAL_DEPENDENCY_FAILURE: AutomationExercise queue is full.'
+      );
+    }
+
+    if (await this.cloudflareError.isVisible().catch(() => false)) {
+      throw new Error(
+        'EXTERNAL_DEPENDENCY_FAILURE: Cloudflare returned HTTP 520.'
+      );
+    }
   }
 
   async open() {
@@ -41,19 +65,13 @@ export class SignupPage {
       timeout: 60000
     });
 
-    const queueFullHeading = this.page.getByRole('heading', {
-      name: /this website is under heavy load/i
-    });
-
     await expect(
-      this.signupNameInput.or(queueFullHeading)
+      this.signupNameInput
+        .or(this.queueFullHeading)
+        .or(this.cloudflareError)
     ).toBeVisible({ timeout: 20000 });
 
-    if (await queueFullHeading.isVisible().catch(() => false)) {
-      throw new Error(
-        'Website is overloaded (queue full). Please retry later.'
-      );
-    }
+    await this.checkExternalFailure();
 
     await this.verifySignupForm();
   }
@@ -65,24 +83,57 @@ export class SignupPage {
     await expect(this.signupButton).toBeVisible();
   }
 
-  async startSignup(name: string, email: string) {
+  // Submit signup details without assuming a new account will be created.
+  async submitSignup(name: string, email: string) {
+    await this.checkExternalFailure();
+
     await this.verifySignupForm();
 
     await this.signupNameInput.fill(name);
     await this.signupEmailInput.fill(email);
-
     await this.signupButton.click();
+  }
 
-    // Do not assert the next page here.
-    // A new email opens account information.
-    // An existing email displays a duplicate-email error.
+  // Normal signup must reach the account information page.
+  async startSignup(name: string, email: string) {
+    await this.submitSignup(name, email);
+
+    await expect(
+      this.accountInformationHeading
+        .or(this.queueFullHeading)
+        .or(this.cloudflareError)
+    ).toBeVisible({ timeout: 15000 });
+
+    await this.checkExternalFailure();
+
+    await expect(this.accountInformationHeading).toBeVisible();
   }
 
   async deleteAccount() {
+    await this.checkExternalFailure();
+
     await expect(this.deleteAccountButton).toBeVisible({
       timeout: 15000
     });
 
+    console.log('Deleting test account...');
+
     await this.deleteAccountButton.click();
+
+    await expect(
+      this.accountDeletedHeading()
+        .or(this.queueFullHeading)
+        .or(this.cloudflareError)
+    ).toBeVisible({ timeout: 15000 });
+
+    await this.checkExternalFailure();
+
+    await expect(this.accountDeletedHeading()).toBeVisible();
+  }
+
+  private accountDeletedHeading() {
+    return this.page.getByRole('heading', {
+      name: 'ACCOUNT DELETED!'
+    });
   }
 }

@@ -42,53 +42,58 @@ test('AE-04: User cannot register with an already registered email', async ({ pa
 
   await expect(
     signupPage.accountCreatedHeading
+      .or(signupPage.queueFullHeading)
+      .or(signupPage.cloudflareError)
   ).toBeVisible({ timeout: 20000 });
 
-  // Step 6: Continue to website
+  await signupPage.checkExternalFailure();
+
+  await expect(signupPage.accountCreatedHeading).toBeVisible();
+
+  // Step 6: Continue and verify logged-in state
   await page.getByRole('link', { name: 'Continue' }).click();
 
-  const loggedInText = page.getByText(`Logged in as ${name}`);
-
-  const queueFullHeading = page.getByRole('heading', {
-    name: /this website is under heavy load/i
+  await expect(loginPage.loggedInUser).toContainText(name, {
+    timeout: 20000
   });
 
-  await expect(
-    loggedInText.or(queueFullHeading)
-  ).toBeVisible({ timeout: 20000 });
-
-  if (await queueFullHeading.isVisible().catch(() => false)) {
-    throw new Error(
-      'Website overloaded after account creation.'
-    );
-  }
-
   // Step 7: Logout
-  await page.getByRole('link', { name: 'Logout' }).click();
+  await loginPage.logoutLink.click();
 
   await expect(loginPage.loginHeading).toBeVisible({
     timeout: 20000
   });
 
   // Step 8: Attempt signup using the same email
-  await signupPage.startSignup(name, email);
+  await signupPage.submitSignup(name, email);
 
-  // Duplicate email should show an error, not account information
   const duplicateEmailError = page.getByText(
     'Email Address already exist!',
     { exact: true }
   );
 
-  await expect(duplicateEmailError).toBeVisible({
-    timeout: 15000
-  });
+  await expect(
+    duplicateEmailError
+      .or(signupPage.queueFullHeading)
+      .or(signupPage.cloudflareError)
+  ).toBeVisible({ timeout: 15000 });
+
+  await signupPage.checkExternalFailure();
+
+  // Verify duplicate email is rejected
+  await expect(duplicateEmailError).toBeVisible();
+
+  // Account information page must not open again
+  await expect(
+    signupPage.accountInformationHeading
+  ).not.toBeVisible();
 
   // Step 9: Login using the original account
   await loginPage.open();
 
   await loginPage.login(email, password);
 
-  await expect(loggedInText).toBeVisible({
+  await expect(loginPage.loggedInUser).toContainText(name, {
     timeout: 20000
   });
 
