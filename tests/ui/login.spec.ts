@@ -4,7 +4,7 @@ import { SignupPage } from '../../src/pages/SignupPage';
 import { AccountInformationPage } from '../../src/pages/AccountInformationPage';
 import { LoginPage } from '../../src/pages/LoginPage';
 
-// Detect external dependency failures
+// Detect known external dependency failures
 async function checkExternalFailure(page: Page) {
   const queueFullHeading = page.getByRole('heading', {
     name: /this website is under heavy load/i,
@@ -159,7 +159,6 @@ test('UI 14 - Logged out user cannot access account page', async ({ page }) => {
 
   // Verify logged-out state
   await expect(loginPage.loginHeading).toBeVisible();
-
   await expect(loginPage.loggedInUser).toHaveCount(0);
 
   // Access protected account page directly
@@ -194,9 +193,16 @@ test('UI 14 - Logged out user cannot access account page', async ({ page }) => {
 test('UI 15 - User can navigate to login page from homepage', async ({ page }) => {
   const loginPage = new LoginPage(page);
 
-  await page.goto('/');
+  await page.goto('/', {
+    waitUntil: 'domcontentloaded',
+  });
 
-  await page.getByRole('link', { name: 'Signup / Login' }).click();
+  const signupLoginLink = page.getByRole('link', {
+    name: 'Signup / Login',
+  });
+
+  await expect(signupLoginLink).toBeVisible();
+  await signupLoginLink.click();
 
   await expect(page).toHaveURL(/login/);
   await expect(loginPage.loginHeading).toBeVisible();
@@ -250,17 +256,7 @@ test('UI 17 - User can navigate to Cart page from homepage', async ({ page }) =>
       .or(queueFullError)
   ).toBeVisible({ timeout: 15000 });
 
-  if (await cloudflareError.isVisible().catch(() => false)) {
-    throw new Error(
-      'EXTERNAL_DEPENDENCY_FAILURE: Cloudflare returned HTTP 520 while opening Cart.'
-    );
-  }
-
-  if (await queueFullError.isVisible().catch(() => false)) {
-    throw new Error(
-      'EXTERNAL_DEPENDENCY_FAILURE: Website returned queue-full response while opening Cart.'
-    );
-  }
+  await checkExternalFailure(page);
 
   await expect(shoppingCartHeading).toBeVisible();
 });

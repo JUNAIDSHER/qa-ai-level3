@@ -71,6 +71,10 @@ async function verifyOrderConfirmation(page: Page) {
 test(
   'Complete purchase journey with a unique test account',
   async ({ page }, testInfo) => {
+    // Allow sufficient time for registration, shopping,
+    // checkout, invoice download and account cleanup.
+    test.setTimeout(90000);
+
     const signupPage = new SignupPage(page);
     const accountInformationPage = new AccountInformationPage(page);
     const productsPage = new ProductsPage(page);

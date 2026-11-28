@@ -40,12 +40,15 @@ export class SignupPage {
       name: /this website is under heavy load/i
     });
 
+    // Match only the exact Cloudflare error text.
+    // Avoid matching both the message and "Error code 520".
     this.cloudflareError = page.getByText(
-      /web server is returning an unknown error|error code 520/i
+      'Web server is returning an unknown error',
+      { exact: true }
     );
   }
 
-  async checkExternalFailure() {
+  async checkExternalFailure(): Promise<void> {
     if (await this.queueFullHeading.isVisible().catch(() => false)) {
       throw new Error(
         'EXTERNAL_DEPENDENCY_FAILURE: AutomationExercise queue is full.'
@@ -59,7 +62,7 @@ export class SignupPage {
     }
   }
 
-  async open() {
+  async open(): Promise<void> {
     await this.page.goto('/login', {
       waitUntil: 'domcontentloaded',
       timeout: 60000
@@ -76,7 +79,7 @@ export class SignupPage {
     await this.verifySignupForm();
   }
 
-  async verifySignupForm() {
+  async verifySignupForm(): Promise<void> {
     await expect(this.signupHeading).toBeVisible();
     await expect(this.signupNameInput).toBeVisible();
     await expect(this.signupEmailInput).toBeVisible();
@@ -84,7 +87,7 @@ export class SignupPage {
   }
 
   // Submit signup details without assuming a new account will be created.
-  async submitSignup(name: string, email: string) {
+  async submitSignup(name: string, email: string): Promise<void> {
     await this.checkExternalFailure();
 
     await this.verifySignupForm();
@@ -95,7 +98,7 @@ export class SignupPage {
   }
 
   // Normal signup must reach the account information page.
-  async startSignup(name: string, email: string) {
+  async startSignup(name: string, email: string): Promise<void> {
     await this.submitSignup(name, email);
 
     await expect(
@@ -109,7 +112,7 @@ export class SignupPage {
     await expect(this.accountInformationHeading).toBeVisible();
   }
 
-  async deleteAccount() {
+  async deleteAccount(): Promise<void> {
     await this.checkExternalFailure();
 
     await expect(this.deleteAccountButton).toBeVisible({
@@ -131,7 +134,7 @@ export class SignupPage {
     await expect(this.accountDeletedHeading()).toBeVisible();
   }
 
-  private accountDeletedHeading() {
+  private accountDeletedHeading(): Locator {
     return this.page.getByRole('heading', {
       name: 'ACCOUNT DELETED!'
     });

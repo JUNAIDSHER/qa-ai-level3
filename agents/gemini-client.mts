@@ -15,5 +15,6 @@ if (!apiKey) {
 
 // Initialize Gemini AI
 export const gemini = new GoogleGenAI({
-  apiKey
+  apiKey,
+  httpOptions: { timeout: 30000 }
 });

@@ -15,6 +15,7 @@ export class ProductsPage {
       name: 'Products',
     });
 
+    // Restored locator after FI-01 fault injection
     this.searchInput = page.locator('#search_product');
     this.searchButton = page.locator('#submit_search');
 
@@ -23,19 +24,19 @@ export class ProductsPage {
     });
   }
 
-  private get queueFullHeading() {
+  private get queueFullHeading(): Locator {
     return this.page.getByRole('heading', {
       name: /this website is under heavy load \(queue full\)/i,
     });
   }
 
-  private get cloudflareErrorHeading() {
+  private get cloudflareErrorHeading(): Locator {
     return this.page.getByRole('heading', {
       name: /web server is returning an unknown error error code 520/i,
     });
   }
 
-  private async checkExternalFailure() {
+  private async checkExternalFailure(): Promise<void> {
     if (await this.queueFullHeading.isVisible().catch(() => false)) {
       throw new Error(
         'EXTERNAL_DEPENDENCY_FAILURE: Automation Exercise website is overloaded (queue full).'
@@ -49,7 +50,7 @@ export class ProductsPage {
     }
   }
 
-  async open() {
+  async open(): Promise<void> {
     await this.page.goto('/products', {
       waitUntil: 'domcontentloaded',
       timeout: 60000,
@@ -61,54 +62,54 @@ export class ProductsPage {
       state: 'visible',
       timeout: 15000,
     });
+
+    await this.checkExternalFailure();
   }
 
-  async getSearchResults() {
+  getSearchResults(): Locator {
     return this.page.locator('.productinfo');
   }
 
-  async searchProduct(productName: string) {
+  async searchProduct(productName: string): Promise<void> {
     await this.searchInput.fill(productName);
     await this.searchButton.click();
 
     await this.checkExternalFailure();
   }
 
- 
-async openProductDetails(productName: string) {
-  const productCard = this.page
-    .locator('.product-image-wrapper')
-    .filter({ hasText: productName })
-    .first();
+  async openProductDetails(productName: string): Promise<void> {
+    const productCard = this.page
+      .locator('.product-image-wrapper')
+      .filter({ hasText: productName })
+      .first();
 
-  const viewProductLink = productCard.locator(
-    'a[href*="/product_details/"]'
-  );
+    const viewProductLink = productCard.locator(
+      'a[href*="/product_details/"]'
+    );
 
-  await viewProductLink.waitFor({
-    state: 'visible',
-    timeout: 15000,
-  });
-
-  await Promise.all([
-    this.page.waitForURL(/\/product_details\/\d+/, {
-      waitUntil: 'domcontentloaded',
+    await viewProductLink.waitFor({
+      state: 'visible',
       timeout: 15000,
-    }),
-    viewProductLink.click(),
-  ]);
+    });
 
-  const quantityInput = this.page.locator('#quantity');
+    await Promise.all([
+      this.page.waitForURL(/\/product_details\/\d+/, {
+        waitUntil: 'domcontentloaded',
+        timeout: 15000,
+      }),
+      viewProductLink.click(),
+    ]);
 
-  await expect(
-    quantityInput
-      .or(this.queueFullHeading)
-      .or(this.cloudflareErrorHeading)
-  ).toBeVisible({
-    timeout: 15000,
-  });
+    const quantityInput = this.page.locator('#quantity');
 
-  await this.checkExternalFailure();
-}
+    await expect(
+      quantityInput
+        .or(this.queueFullHeading)
+        .or(this.cloudflareErrorHeading)
+    ).toBeVisible({
+      timeout: 15000,
+    });
 
+    await this.checkExternalFailure();
+  }
 }

@@ -1,6 +1,7 @@
 
-import { test, expect, APIResponse } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { AccountApi } from '../../src/api/AccountApi';
+import { getApiJsonResponse } from './helpers/api-response';
 
 function createAccountData() {
   const uniqueId = `${Date.now()}${Math.floor(Math.random() * 1000)}`;
@@ -22,46 +23,8 @@ function createAccountData() {
     zipcode: '123456',
     state: 'Test State',
     city: 'Test City',
-    mobile_number: '03001234567'
+    mobile_number: '03001234567',
   };
-}
-
-/**
- * Reads and validates the API response body.
- * The server may return valid JSON with an incorrect Content-Type header.
- * Invalid JSON (including HTML challenge pages) still fails the test.
- */
-async function getJsonResponse(
-  response: APIResponse,
-  apiName: string
-) {
-  const contentType = response.headers()['content-type'] || '';
-  const responseText = await response.text();
-
-  console.log(`${apiName} Status:`, response.status());
-  console.log(`${apiName} Content-Type:`, contentType);
-  console.log(`${apiName} Response:`, responseText.slice(0, 1000));
-
-  if (!contentType.toLowerCase().includes('application/json')) {
-    console.warn(
-      `${apiName}: Non-JSON Content-Type received: ${contentType}`
-    );
-  }
-
-  let body: any;
-
-  try {
-    body = JSON.parse(responseText);
-  } catch {
-    throw new Error(
-      `${apiName} returned invalid JSON. ` +
-      `HTTP Status: ${response.status()}. ` +
-      `Content-Type: ${contentType}. ` +
-      `Response: ${responseText.slice(0, 1000)}`
-    );
-  }
-
-  return body;
 }
 
 // API 7 - Create Account
@@ -71,10 +34,9 @@ test('API 7 - Create a new account', async ({ request }) => {
 
   const response = await accountApi.createAccount(account);
 
+  const body = await getApiJsonResponse(response, 'API 7');
+
   expect(response.status()).toBe(200);
-
-  const body = await getJsonResponse(response, 'API 7');
-
   expect(body.responseCode).toBe(201);
   expect(body.message).toContain('User created');
 });
@@ -87,13 +49,12 @@ test('API 8 - Delete an existing account', async ({ request }) => {
   // Create account first so API 8 has an account to delete
   const createResponse = await accountApi.createAccount(account);
 
-  expect(createResponse.status()).toBe(200);
-
-  const createBody = await getJsonResponse(
+  const createBody = await getApiJsonResponse(
     createResponse,
     'API 8 - Create account prerequisite'
   );
 
+  expect(createResponse.status()).toBe(200);
   expect(createBody.responseCode).toBe(201);
   expect(createBody.message).toContain('User created');
 
@@ -103,13 +64,12 @@ test('API 8 - Delete an existing account', async ({ request }) => {
     account.password
   );
 
-  expect(deleteResponse.status()).toBe(200);
-
-  const deleteBody = await getJsonResponse(
+  const deleteBody = await getApiJsonResponse(
     deleteResponse,
     'API 8 - Delete account'
   );
 
+  expect(deleteResponse.status()).toBe(200);
   expect(deleteBody.responseCode).toBe(200);
   expect(deleteBody.message).toContain('Account deleted');
 });
